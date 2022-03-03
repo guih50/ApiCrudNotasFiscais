@@ -42,7 +42,7 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        const string connectionString = "Server=projetostone.postgres.database.azure.com,5432;Initial Catalog=notas_fiscais;Username=guilhermelima;Password=projetostone2022!;";
+
         // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("obter_notas")]
         [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
@@ -56,7 +56,8 @@ namespace Company.Function
 
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req)
         {
-            string connString = "Server=projetostone.postgres.database.azure.com;Username=guilhermelima;Database=notas_fiscais;Port=5432;Password=projetostone2022!;SSLMode=Prefer";
+            string connString = System.Environment.GetEnvironmentVariable("PATH_TO_PROJECT_STONE_DATABASE");
+            Console.WriteLine(connString);
             _logger.LogInformation("C# HTTP trigger function processed a request.");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
@@ -128,7 +129,6 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        const string connectionString = "Server=projetostone.postgres.database.azure.com,5432;Initial Catalog=notas_fiscais;Username=guilhermelima;Password=projetostone2022!;";
         // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("adicionar_notas")]
         [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
@@ -147,7 +147,7 @@ namespace Company.Function
 
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
         {
-            string connString = "Server=projetostone.postgres.database.azure.com;Username=guilhermelima;Database=notas_fiscais;Port=5432;Password=projetostone2022!;SSLMode=Prefer";
+            string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processed a request.");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
@@ -217,7 +217,6 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        const string connectionString = "Server=projetostone.postgres.database.azure.com,5432;Initial Catalog=notas_fiscais;Username=guilhermelima;Password=projetostone2022!;";
         // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("alterar_nota")]
         [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
@@ -236,7 +235,7 @@ namespace Company.Function
 
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = null)] HttpRequest req)
         {
-            string connString = "Server=projetostone.postgres.database.azure.com;Username=guilhermelima;Database=notas_fiscais;Port=5432;Password=projetostone2022!;SSLMode=Prefer";
+            string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processed a request.");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
@@ -320,7 +319,6 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        const string connectionString = "Server=projetostone.postgres.database.azure.com,5432;Initial Catalog=notas_fiscais;Username=guilhermelima;Password=projetostone2022!;";
         // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("alterar_notas_em_massa}")]
         [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
@@ -339,7 +337,7 @@ namespace Company.Function
 
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "alterar_notas_em_massa/{Campo}/{ValueCampo}")] HttpRequest req, string Campo, string ValueCampo)
         {
-            string connString = "Server=projetostone.postgres.database.azure.com;Username=guilhermelima;Database=notas_fiscais;Port=5432;Password=projetostone2022!;SSLMode=Prefer";
+            string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processed a request.");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
@@ -428,7 +426,6 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        const string connectionString = "Server=projetostone.postgres.database.azure.com,5432;Initial Catalog=notas_fiscais;Username=guilhermelima;Password=projetostone2022!;";
         // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("deletar_nota")]
         [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
@@ -447,7 +444,7 @@ namespace Company.Function
 
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = null)] HttpRequest req)
         {
-            string connString = "Server=projetostone.postgres.database.azure.com;Username=guilhermelima;Database=notas_fiscais;Port=5432;Password=projetostone2022!;SSLMode=Prefer";
+            string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processed a request.");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
