@@ -12,14 +12,15 @@ using Newtonsoft.Json;
 using Npgsql;
 using System;
 using System.Collections.Generic;
-
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
+using System.Linq;
 
 namespace Company.Function
 {
     public class obter_notas
     {
         private readonly ILogger<obter_notas> _logger;
-        private static string FormatarQuerrySelect(string ReferenceMonth, string ReferenceYear, string Document, string OrderBy)
+        private static string FormatarQuerrySelect(string ReferenceMonth, string ReferenceYear, string Document, string OrderBy, string Offset, string Limit)
         {
             string command = "SELECT * FROM \"invoice\" WHERE \"IsActive\" = 'True'";
             command = string.IsNullOrEmpty(ReferenceMonth)
@@ -34,6 +35,7 @@ namespace Company.Function
             command = string.IsNullOrEmpty(OrderBy)
                 ? command
                 : command + String.Format(" ORDER BY \"{0}\"", OrderBy);
+            command = command + String.Format(" OFFSET {0} LIMIT {1}", Offset, Limit);
             return command;
         }
 
@@ -45,16 +47,19 @@ namespace Company.Function
 
         // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("obter_notas")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
+        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Obter as notas fiscais do servidor", Description = "Metodo usado para recuperar todas notas fiscais, ou parcialmente filtradas.", Visibility = OpenApiVisibilityType.Important)]
+        [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O mês de referência da nota fiscal")]
         [OpenApiParameter(name: "ReferenceYear", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O ano de referência da nota fiscal")]
         [OpenApiParameter(name: "Document", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O Documento da nota fiscal")]
         [OpenApiParameter(name: "OrderBy", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O campo para ordenar a lista")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
+        [OpenApiParameter(name: "Offset", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "Paginação da api.")]
+        [OpenApiParameter(name: "Limit", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "Quantidade de registros para retornar, limitado a 50.")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(Invoice), Description = "The OK response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
 
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable("PATH_TO_PROJECT_STONE_DATABASE");
             Console.WriteLine(connString);
@@ -64,6 +69,8 @@ namespace Company.Function
             string ReferenceYear = req.Query["ReferenceYear"];
             string Document = req.Query["Document"];
             string OrderBy = req.Query["OrderBy"];
+            string OffsetEntrada = req.Query["Offset"];
+            string LimitEntrada = req.Query["Limit"];
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
@@ -71,12 +78,22 @@ namespace Company.Function
             ReferenceYear = ReferenceYear ?? data?.ReferenceYear;
             Document = Document ?? data?.Document;
             OrderBy = OrderBy ?? data?.OrderBy;
+            OffsetEntrada = OffsetEntrada ?? data?.OffsetEntrada;
+            LimitEntrada = LimitEntrada ?? data?.LimitEntrada;
+            int LimitEntradaConvertido = Convert.ToInt32(LimitEntrada);
+            if (LimitEntradaConvertido > 50)
+            {
+                LimitEntradaConvertido = 50;
+            }
+
+            string Offset = !string.IsNullOrEmpty(OffsetEntrada) ? OffsetEntrada : "0";
+            string Limit = !string.IsNullOrEmpty(LimitEntrada) ? LimitEntrada : "50";
             if (OrderBy != null && OrderBy != "ReferenceMonth" && OrderBy != "ReferenceYear" && OrderBy != "Document" && OrderBy != "Amount" && OrderBy != "CreatedAt" && OrderBy != "DeactivatedAt")
             {
                 return new BadRequestObjectResult("OrderBy não é válido");
             }
 
-            string command = FormatarQuerrySelect(ReferenceMonth, ReferenceYear, Document, OrderBy);
+            string command = FormatarQuerrySelect(ReferenceMonth, ReferenceYear, Document, OrderBy, Offset, Limit);
 
             using (var conn = new NpgsqlConnection(connString))
             {
@@ -88,24 +105,30 @@ namespace Company.Function
                     //return server erro
                     return new StatusCodeResult(500);
                 }
-
-                using (var cmd = new NpgsqlCommand(command, conn))
-                {
-                    var reader = cmd.ExecuteReader();
-                    while (reader.Read())
+                try{
+                    using (var cmd = new NpgsqlCommand(command, conn))
                     {
-                        invoices.Add(new Invoice(
-                            reader.GetString(0),
-                            reader.GetString(1),
-                            reader.GetString(2),
-                            reader.GetString(3),
-                            reader.GetString(4),
-                            reader.GetString(5),
-                            reader.GetValue(6) == null ? "True" : "False"
-                            ));
+                        var reader = cmd.ExecuteReader();
+                        while (reader.Read())
+                        {
+                            invoices.Add(new Invoice(
+                                reader.GetString(0),
+                                reader.GetString(1),
+                                reader.GetString(2),
+                                reader.GetString(3),
+                                reader.GetString(4),
+                                reader.GetString(5),
+                                reader.GetValue(6) == null ? "True" : "False"
+                                ));
+                        }
+                        reader.Close();
                     }
-                    reader.Close();
                 }
+                catch (Exception)
+                {
+                    return new BadRequestObjectResult("Parametros invalidos.");
+                }
+            
             }
 
             return new OkObjectResult(invoices);
@@ -129,10 +152,10 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("adicionar_notas")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
+        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Adicionar as notas fiscais do servidor", Description = "Metodo usado para Adicionar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
+        [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O mês de referência da nota fiscal")]
         [OpenApiParameter(name: "ReferenceYear", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O ano de referência da nota fiscal")]
         [OpenApiParameter(name: "Document", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "O Documento da nota fiscal")]
@@ -145,7 +168,7 @@ namespace Company.Function
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
 
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processed a request.");
@@ -217,10 +240,10 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("alterar_nota")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
+        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor", Description = "Metodo usado para modificar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
+        [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O mês de referência da nota fiscal")]
         [OpenApiParameter(name: "ReferenceYear", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O ano de referência da nota fiscal")]
         [OpenApiParameter(name: "Document", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "O Documento da nota fiscal")]
@@ -233,7 +256,7 @@ namespace Company.Function
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
 
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = null)] HttpRequest req)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "put", Route = null)] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processed a request.");
@@ -319,10 +342,10 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("alterar_notas_em_massa}")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
+        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor massivamente", Description = "Metodo usado para modificar notas fiscais no servidor de modo massivo.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
+        [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O mês de referência da nota fiscal")]
         [OpenApiParameter(name: "ReferenceYear", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O ano de referência da nota fiscal")]
         [OpenApiParameter(name: "Document", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O Documento da nota fiscal")]
@@ -335,7 +358,7 @@ namespace Company.Function
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
 
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "alterar_notas_em_massa/{Campo}/{ValueCampo}")] HttpRequest req, string Campo, string ValueCampo)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "patch", Route = "alterar_notas_em_massa/{Campo}/{ValueCampo}")] HttpRequest req, string Campo, string ValueCampo)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processed a request.");
@@ -426,10 +449,10 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("deletar_nota")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
+        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Deletar as notas fiscais do servidor", Description = "Metodo usado para deletar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
+        [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O mês de referência da nota fiscal")]
         [OpenApiParameter(name: "ReferenceYear", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O ano de referência da nota fiscal")]
         [OpenApiParameter(name: "Document", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O Documento da nota fiscal")]
@@ -442,7 +465,7 @@ namespace Company.Function
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
 
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = null)] HttpRequest req)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "delete", Route = null)] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processed a request.");
@@ -491,7 +514,6 @@ namespace Company.Function
     
         
     }
-
 
 }
 
