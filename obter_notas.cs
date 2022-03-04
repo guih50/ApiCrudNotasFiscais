@@ -13,6 +13,7 @@ using Npgsql;
 using System;
 using System.Collections.Generic;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
+using System.Globalization;
 
 namespace Company.Function
 {
@@ -200,8 +201,14 @@ namespace Company.Function
             {
                 return new BadRequestObjectResult("Por favor, preencha todos os campos.");
             }
-            CreatedAt = !string.IsNullOrEmpty(CreatedAt) ? CreatedAt : DateTime.Now.ToString("yyyy/MM/dd");
-            DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : null;
+            CreatedAt = !string.IsNullOrEmpty(CreatedAt) ? CreatedAt : DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+            DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : "False";
+            DeactivatedAt = DateTime.TryParseExact(DeactivatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) ? DeactivatedAt : "False";
+            if(DateTime.TryParseExact(CreatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date2) == false)
+            {
+                return new BadRequestObjectResult("Data de criação inválida.");
+            }
+
             string command = FormatarQuerryInsercao(ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt, IsActive);
 
             using (var conn = new NpgsqlConnection(connString))
@@ -285,7 +292,13 @@ namespace Company.Function
             CreatedAt = CreatedAt ?? data?.CreatedAt;
             DeactivatedAt = DeactivatedAt ?? data?.DeactivatedAt;
 
-            DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : null;
+            DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : "False";
+            DeactivatedAt = DateTime.TryParseExact(DeactivatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) ? DeactivatedAt : "False";
+            if(DateTime.TryParseExact(CreatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date2) == false)
+            {
+                return new BadRequestObjectResult("Data de criação inválida.");
+            }
+            
             if (string.IsNullOrEmpty(ReferenceMonth) || string.IsNullOrEmpty(ReferenceYear) || string.IsNullOrEmpty(Document) || string.IsNullOrEmpty(Description) || string.IsNullOrEmpty(Amount) || string.IsNullOrEmpty(CreatedAt))
             {
                 return new BadRequestObjectResult("Por favor, preencha todos os campos.");
@@ -399,6 +412,13 @@ namespace Company.Function
             CreatedAt = CreatedAt ?? data?.CreatedAt;
             DeactivatedAt = DeactivatedAt ?? data?.DeactivatedAt;
 
+            DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : "False";
+            DeactivatedAt = DateTime.TryParseExact(DeactivatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) ? DeactivatedAt : "False";
+            if(DateTime.TryParseExact(CreatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date2) == false)
+            {
+                return new BadRequestObjectResult("Data de criação inválida.");
+            }
+
             if (!string.IsNullOrEmpty(ReferenceMonth) && !string.IsNullOrEmpty(ReferenceYear) && !string.IsNullOrEmpty(Document) && !string.IsNullOrEmpty(Description) && !string.IsNullOrEmpty(Amount) && !string.IsNullOrEmpty(CreatedAt) && !string.IsNullOrEmpty(DeactivatedAt))
             {
                 return new BadRequestObjectResult("Por favor, preencha ao menos um campo para fazer a alteração.");
@@ -442,7 +462,7 @@ namespace Company.Function
         private readonly ILogger<deletar_nota> _logger;
         private static string FormatarQuerrydeletar(int InvoiceId, string ReferenceMonth, string ReferenceYear, string Document, string Description, string Amount, string CreatedAt, string DeactivatedAt)
         {
-            string command = "UPDATE \"invoice\" SET \"IsActive\" = 'False' WHERE ";
+            string command = String.Format("UPDATE \"invoice\" SET \"IsActive\" = 'False', \"DeactivatedAt\" = '{0}' WHERE ", DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"));
             string id_string = InvoiceId.ToString();
             command = string.IsNullOrEmpty(id_string)
                 ? command
