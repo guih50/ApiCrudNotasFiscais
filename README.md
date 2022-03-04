@@ -22,5 +22,4 @@ A API nescessita de uma chave de autorização, cujo não está disponivel publi
 
 ## Getting started
 
-Para rodar o projeto em sua maquina, e não apenas acessa-la na nuvem no link https://projetostone.azurewebsites.net/api/swagger/ui#/,
-é nescessario clonar o repositório e ter a versão .NET6 SDK instalado no seu computador.
+Para rodar o projeto em sua maquina, e não apenas acessa-la na nuvem no link https://projetostone.azurewebsites.net/api/swagger/ui#/, é nescessario clonar o repositório e ter a versão .NET6 SDK instalado no seu computador.
