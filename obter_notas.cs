@@ -374,7 +374,7 @@ namespace Company.Function
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
 
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "patch", Route = "alterar_notas_em_massa")] HttpRequest req)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "patch", Route = "alterar_informacao_de_nota")] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processou uma requisição de alteração de dados especificos em notas fiscais.");
