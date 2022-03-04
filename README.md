@@ -1,7 +1,7 @@
 # DESAFIO STONE
 API em C# e .NET6
 
-API com endpoints de get, post, put, patch e delete lógico.
+API com endpoints de get, post, put, patch e delete lógico de notas fiscais.
 
 
 ## How to use
@@ -18,7 +18,8 @@ A API nescessita de uma chave de autorização, cujo não está disponivel publi
 - Programação C#
 - .NET6
 - Visual Studio Code
-
+- Azure Functions
+- Azure PostgreSQL
 
 ## Getting started
 
