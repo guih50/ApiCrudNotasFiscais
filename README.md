@@ -1,5 +1,5 @@
 # DESAFIO STONE
-API em C# e .NET6
+Aprender C# do 0 e criar uma API na linguagem com .NET6
 
 API com endpoints de get, post, put, patch e delete lógico de notas fiscais.
 
