@@ -67,7 +67,6 @@ namespace Company.Function
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable("PATH_TO_PROJECT_STONE_DATABASE");
-            Console.WriteLine(connString);
             _logger.LogInformation("C# HTTP trigger function processou uma requisição get.");
 
             int InvoiceId = Convert.ToInt32(req.Query["InvoiceId"]);
@@ -100,7 +99,6 @@ namespace Company.Function
             }
 
             string command = FormatarQuerrySelect(InvoiceId, ReferenceMonth, ReferenceYear, Document, OrderBy, Offset, Limit);
-            Console.WriteLine(command);
             using (var conn = new NpgsqlConnection(connString))
             {
                 try{
@@ -177,7 +175,7 @@ namespace Company.Function
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            _logger.LogInformation("C# HTTP trigger function precessou uma requisição de adicionar notas fiscais");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
@@ -209,13 +207,11 @@ namespace Company.Function
             using (var conn = new NpgsqlConnection(connString))
             {
 
-                Console.Out.WriteLine("Opening connection");
                 try{
                     conn.Open();
                 }
                 catch (Exception)
                 {
-                    //return server erro
                     return new StatusCodeResult(500);
                 }
                 using (var cmd = new NpgsqlCommand(command, conn))
@@ -267,7 +263,7 @@ namespace Company.Function
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "put", Route = null)] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            _logger.LogInformation("C# HTTP trigger function processou uma requisição de alteração de nota fiscal.");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
@@ -300,7 +296,6 @@ namespace Company.Function
             using (var conn = new NpgsqlConnection(connString))
             {
 
-                Console.Out.WriteLine("Opening connection");
                 try{
                     conn.Open();
                 }
@@ -327,9 +322,9 @@ namespace Company.Function
         
     }
 
-    public class alterar_notas_em_massa
+    public class alterar_informacao_de_nota
     {
-        private readonly ILogger<alterar_notas_em_massa> _logger;
+        private readonly ILogger<alterar_informacao_de_nota> _logger;
         private static string FormatarQuerryAlteracao(int InvoiceId, string ReferenceMonth, string ReferenceYear, string Document, string Description, string Amount, string CreatedAt, string DeactivatedAt, string IsActive)
         {
             string command = "UPDATE \"invoice\" SET ";
@@ -357,12 +352,12 @@ namespace Company.Function
             return command;
         }
 
-        public alterar_notas_em_massa(ILogger<alterar_notas_em_massa> log)
+        public alterar_informacao_de_nota(ILogger<alterar_informacao_de_nota> log)
         {
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
-        [FunctionName("alterar_notas_em_massa")]
+        [FunctionName("alterar_informacao_de_nota")]
         [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor massivamente", Description = "Metodo usado para modificar notas fiscais no servidor de modo massivo.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
@@ -382,7 +377,7 @@ namespace Company.Function
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "patch", Route = "alterar_notas_em_massa")] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            _logger.LogInformation("C# HTTP trigger function processou uma requisição de alteração de dados especificos em notas fiscais.");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
@@ -410,12 +405,10 @@ namespace Company.Function
             }
 
             string command = FormatarQuerryAlteracao(InvoiceId, ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt, IsActive);
-            Console.WriteLine(command);
 
             using (var conn = new NpgsqlConnection(connString))
             {
 
-                Console.Out.WriteLine("Opening connection");
                 try{
                     conn.Open();
                 }
@@ -444,7 +437,7 @@ namespace Company.Function
         
     }
 
-     public class deletar_nota
+    public class deletar_nota
     {
         private readonly ILogger<deletar_nota> _logger;
         private static string FormatarQuerrydeletar(int InvoiceId, string ReferenceMonth, string ReferenceYear, string Document, string Description, string Amount, string CreatedAt, string DeactivatedAt)
@@ -503,7 +496,7 @@ namespace Company.Function
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "delete", Route = null)] HttpRequest req)
         {
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            _logger.LogInformation("C# HTTP trigger function processou uma requisição de deletar notas fiscais.");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
@@ -529,7 +522,6 @@ namespace Company.Function
             using (var conn = new NpgsqlConnection(connString))
             {
 
-                Console.Out.WriteLine("Opening connection");
                 try{
                     conn.Open();
                 }
