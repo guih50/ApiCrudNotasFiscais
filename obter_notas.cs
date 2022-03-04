@@ -63,7 +63,7 @@ namespace Company.Function
         }
         public List<Invoice> invoices = new List<Invoice>();
 
-        // Linhas abaixo são referentes a funções do azure functions
+        // documentação no swagger
         [FunctionName("obter_notas")]
         [OpenApiOperation(operationId: "Run_obter_notas", tags: new[] { "Invoice" } , Summary = "Obter as notas fiscais do servidor", Description = "Metodo usado para recuperar todas notas fiscais, ou parcialmente filtradas.", Visibility = OpenApiVisibilityType.Important)]
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
@@ -83,6 +83,7 @@ namespace Company.Function
             string connString = System.Environment.GetEnvironmentVariable("PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processou uma requisição get.");
 
+            //pegando os parametros da requisição tanto no query string quanto no body caso nescessario.
             int InvoiceId = Convert.ToInt32(req.Query["InvoiceId"]);
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
@@ -102,6 +103,7 @@ namespace Company.Function
             string Offset, Limit;
             LimitEntrada = TratamentoDeDados(OffsetEntrada, LimitEntrada, out Offset, out Limit);
             
+            // verifica se o orderby é de alguma coluna valida para ordenar
             if (OrderBy != null && OrderBy != "ReferenceMonth" && OrderBy != "ReferenceYear" && OrderBy != "Document" && OrderBy != "Amount" && OrderBy != "CreatedAt" && OrderBy != "DeactivatedAt")
             {
                 return new BadRequestObjectResult("OrderBy não é válido");
@@ -109,6 +111,7 @@ namespace Company.Function
 
             string command = FormatarQuerrySelect(InvoiceId, ReferenceMonth, ReferenceYear, Document, OrderBy, Offset, Limit);
             _logger.LogInformation(command);
+
             using (var conn = new NpgsqlConnection(connString))
             {
                 try
@@ -117,7 +120,7 @@ namespace Company.Function
                 }
                 catch (Exception)
                 {
-                    //return server erro
+                    //retorna server erro caso não tenha sido possivel abrir o banco de dados
                     return new StatusCodeResult(500);
                 }
                 try
@@ -126,6 +129,7 @@ namespace Company.Function
                     {
                         var reader = cmd.ExecuteReader();
                         while (reader.Read())
+                        //não lê o campo 7, pois esse campo é de uso interno
                         {
                             invoices.Add(new Invoice(
                                 reader.GetString(0),
@@ -143,7 +147,8 @@ namespace Company.Function
                 }
                 catch (Exception)
                 {
-                    return new BadRequestObjectResult("Parametros invalidos.");
+                    // como a conexão já foi testada antes, o unico modo de dar erro é se a querry for invalida
+                    return new BadRequestObjectResult("Parametros da querry invalidos.");
                 }
             }
 
@@ -178,9 +183,10 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
+
+        // documentação no swagger
         [FunctionName("adicionar_notas")]
         [OpenApiOperation(operationId: "Run_adicionar_notas", tags: new[] { "Invoice" } , Summary = "Adicionar as notas fiscais do servidor", Description = "Metodo usado para Adicionar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
-        //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O mês de referência da nota fiscal")]
         [OpenApiParameter(name: "ReferenceYear", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O ano de referência da nota fiscal")]
@@ -189,7 +195,6 @@ namespace Company.Function
         [OpenApiParameter(name: "Amount", In = ParameterLocation.Query, Required = true, Type = typeof(float), Description = "O valor da nota fiscal")]
         [OpenApiParameter(name: "CreatedAt", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "A data de criação da nota fiscal")]
         [OpenApiParameter(name: "DeactivatedAt", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "A data de desativação da nota fiscal")]
-        //respostas possiveis (mostrar no swagger)
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
@@ -198,7 +203,8 @@ namespace Company.Function
         {
             string connString = System.Environment.GetEnvironmentVariable(variable: "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function precessou uma requisição de adicionar notas fiscais");
-
+            
+            //pegando os parametros da requisição tanto no query string quanto no body caso nescessario.
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
             string Document = req.Query["Document"];
@@ -218,6 +224,7 @@ namespace Company.Function
             CreatedAt = CreatedAt ?? data?.CreatedAt;
             DeactivatedAt = DeactivatedAt ?? data?.DeactivatedAt;
 
+            // tratamento e verificação de dados
             if (string.IsNullOrEmpty(ReferenceMonth) || string.IsNullOrEmpty(ReferenceYear) || string.IsNullOrEmpty(Document) || string.IsNullOrEmpty(Description) || string.IsNullOrEmpty(Amount))
             {
                 return new BadRequestObjectResult("Por favor, preencha todos os campos.");
@@ -240,6 +247,7 @@ namespace Company.Function
                 }
                 catch (Exception)
                 {
+                    //retorna server erro caso não tenha sido possivel abrir o banco de dados
                     return new StatusCodeResult(500);
                 }
                 using (var cmd = new NpgsqlCommand(command, conn))
@@ -274,9 +282,9 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
+        // documentação no swagger
         [FunctionName("alterar_nota")]
         [OpenApiOperation(operationId: "Run_alterar_nota", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor", Description = "Metodo usado para modificar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
-        //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "InvoiceId", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O id da nota fiscal")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "O mês de referência da nota fiscal")]
@@ -286,7 +294,6 @@ namespace Company.Function
         [OpenApiParameter(name: "Amount", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "O valor da nota fiscal")]
         [OpenApiParameter(name: "CreatedAt", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "A data de criação da nota fiscal")]
         [OpenApiParameter(name: "DeactivatedAt", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "A data de desativação da nota fiscal")]
-        //respostas possiveis (mostrar no swagger)
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
@@ -296,6 +303,7 @@ namespace Company.Function
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processou uma requisição de alteração de nota fiscal.");
 
+            //pegando os parametros da requisição tanto no query string quanto no body caso nescessario.
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
             string Document = req.Query["Document"];
@@ -316,9 +324,10 @@ namespace Company.Function
             CreatedAt = CreatedAt ?? data?.CreatedAt;
             DeactivatedAt = DeactivatedAt ?? data?.DeactivatedAt;
 
+            // tratamento e verificação de dados
             DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : "False";
             DeactivatedAt = DateTime.TryParseExact(DeactivatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) ? DeactivatedAt : "False";
-            
+
             if(DateTime.TryParseExact(CreatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date2) == false)
             {
                 return new BadRequestObjectResult("Data de criação inválida.");
@@ -339,6 +348,7 @@ namespace Company.Function
                 }
                 catch (Exception)
                 {
+                    //retorna server erro caso não tenha sido possivel abrir o banco de dados
                     return new StatusCodeResult(500);
                 }
                 try{
@@ -349,6 +359,7 @@ namespace Company.Function
                 }
                 catch (Exception)
                 {
+                    // como a conexão já foi testada antes, o unico modo de dar erro é se a querry for invalida
                     return new BadRequestObjectResult("Parametros invalidos.");
                 }
                 
@@ -395,9 +406,10 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
+
+        // documentação no swagger
         [FunctionName("alterar_informacao_de_nota")]
         [OpenApiOperation(operationId: "Run_alterar_informacao_de_nota", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor massivamente", Description = "Metodo usado para modificar notas fiscais no servidor de modo massivo.", Visibility = OpenApiVisibilityType.Important)]
-        //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "InvoiceId", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O id da nota fiscal")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O mês de referência da nota fiscal")]
@@ -407,7 +419,6 @@ namespace Company.Function
         [OpenApiParameter(name: "Amount", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O valor da nota fiscal")]
         [OpenApiParameter(name: "CreatedAt", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "A data de criação da nota fiscal")]
         [OpenApiParameter(name: "DeactivatedAt", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "A data de desativação da nota fiscal")]
-        //respostas possiveis (mostrar no swagger)
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
@@ -417,6 +428,7 @@ namespace Company.Function
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processou uma requisição de alteração de dados especificos em notas fiscais.");
 
+            //pegando os parametros da requisição tanto no query string quanto no body caso nescessario.
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
             string Document = req.Query["Document"];
@@ -437,6 +449,7 @@ namespace Company.Function
             CreatedAt = CreatedAt ?? data?.CreatedAt;
             DeactivatedAt = DeactivatedAt ?? data?.DeactivatedAt;
 
+            // tratamento e verificação de dados
             DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : "False";
             DeactivatedAt = DateTime.TryParseExact(DeactivatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) ? DeactivatedAt : "False";
             if(DateTime.TryParseExact(CreatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date2) == false)
@@ -460,7 +473,7 @@ namespace Company.Function
                 }
                 catch (Exception)
                 {
-                    //return server erro
+                    //retorna server erro caso não tenha sido possivel abrir o banco de dados
                     return new StatusCodeResult(500);
                 }
                 try{
@@ -471,7 +484,7 @@ namespace Company.Function
                 }
                 catch (Exception)
                 {
-                    //return server erro
+                    // como a conexão já foi testada antes, o unico modo de dar erro é se a querry for invalida
                     return new BadRequestObjectResult("Parametros invalidos.");
                 }
                 
@@ -522,9 +535,9 @@ namespace Company.Function
             _logger = log;
         }
         public List<Invoice> invoices = new List<Invoice>();
+        // documentação no swagger
         [FunctionName("deletar_nota")]
         [OpenApiOperation(operationId: "Run_deletar_nota", tags: new[] { "Invoice" } , Summary = "Deletar as notas fiscais do servidor", Description = "Metodo usado para deletar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
-        //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "InvoiceId", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O id da nota fiscal")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O mês de referência da nota fiscal")]
@@ -534,7 +547,6 @@ namespace Company.Function
         [OpenApiParameter(name: "Amount", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O valor da nota fiscal")]
         [OpenApiParameter(name: "CreatedAt", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "A data de criação da nota fiscal")]
         [OpenApiParameter(name: "DeactivatedAt", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "A data de desativação da nota fiscal")]
-        //respostas possiveis (mostrar no swagger)
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.BadRequest, contentType: "text/plain", bodyType: typeof(string), Description = "The BadRequest response")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.InternalServerError, contentType: "text/plain", bodyType: typeof(string), Description = "The InternalServerError response")]
@@ -544,6 +556,7 @@ namespace Company.Function
             string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function processou uma requisição de deletar notas fiscais.");
 
+            //pegando os parametros da requisição tanto no query string quanto no body caso nescessario.
             string ReferenceMonth = req.Query["ReferenceMonth"];
             string ReferenceYear = req.Query["ReferenceYear"];
             string Document = req.Query["Document"];
@@ -574,7 +587,7 @@ namespace Company.Function
                 }
                 catch (Exception)
                 {
-                    //return server erro
+                    //retorna server erro caso não tenha sido possivel abrir o banco de dados
                     return new StatusCodeResult(500);
                 }
                 using (var cmd = new NpgsqlCommand(command, conn))
