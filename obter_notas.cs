@@ -51,7 +51,7 @@ namespace Company.Function
 
         // Linhas abaixo são referentes a funções do azure functions
         [FunctionName("obter_notas")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Obter as notas fiscais do servidor", Description = "Metodo usado para recuperar todas notas fiscais, ou parcialmente filtradas.", Visibility = OpenApiVisibilityType.Important)]
+        [OpenApiOperation(operationId: "Run_obter_notas", tags: new[] { "Invoice" } , Summary = "Obter as notas fiscais do servidor", Description = "Metodo usado para recuperar todas notas fiscais, ou parcialmente filtradas.", Visibility = OpenApiVisibilityType.Important)]
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "InvoiceId", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O id da nota fiscal")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "O mês de referência da nota fiscal")]
@@ -157,7 +157,7 @@ namespace Company.Function
         }
         public List<Invoice> invoices = new List<Invoice>();
         [FunctionName("adicionar_notas")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Adicionar as notas fiscais do servidor", Description = "Metodo usado para Adicionar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
+        [OpenApiOperation(operationId: "Run_adicionar_notas", tags: new[] { "Invoice" } , Summary = "Adicionar as notas fiscais do servidor", Description = "Metodo usado para Adicionar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "ReferenceMonth", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O mês de referência da nota fiscal")]
@@ -244,7 +244,7 @@ namespace Company.Function
         }
         public List<Invoice> invoices = new List<Invoice>();
         [FunctionName("alterar_nota")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor", Description = "Metodo usado para modificar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
+        [OpenApiOperation(operationId: "Run_alterar_nota", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor", Description = "Metodo usado para modificar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "InvoiceId", In = ParameterLocation.Query, Required = true, Type = typeof(int), Description = "O id da nota fiscal")]
@@ -358,7 +358,7 @@ namespace Company.Function
         }
         public List<Invoice> invoices = new List<Invoice>();
         [FunctionName("alterar_informacao_de_nota")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor massivamente", Description = "Metodo usado para modificar notas fiscais no servidor de modo massivo.", Visibility = OpenApiVisibilityType.Important)]
+        [OpenApiOperation(operationId: "Run_alterar_informacao_de_nota", tags: new[] { "Invoice" } , Summary = "Alterar as notas fiscais do servidor massivamente", Description = "Metodo usado para modificar notas fiscais no servidor de modo massivo.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "InvoiceId", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O id da nota fiscal")]
@@ -477,7 +477,7 @@ namespace Company.Function
         }
         public List<Invoice> invoices = new List<Invoice>();
         [FunctionName("deletar_nota")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "Invoice" } , Summary = "Deletar as notas fiscais do servidor", Description = "Metodo usado para deletar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
+        [OpenApiOperation(operationId: "Run_deletar_nota", tags: new[] { "Invoice" } , Summary = "Deletar as notas fiscais do servidor", Description = "Metodo usado para deletar notas fiscais no servidor.", Visibility = OpenApiVisibilityType.Important)]
         //Parametros da funcao, com obrigatoriedade ou não
         [OpenApiSecurity("apikey",SecuritySchemeType.ApiKey, In = OpenApiSecurityLocationType.Query, Name = "code")]
         [OpenApiParameter(name: "InvoiceId", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "O id da nota fiscal")]
