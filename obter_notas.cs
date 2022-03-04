@@ -44,6 +44,19 @@ namespace Company.Function
             return command;
         }
 
+        private static string TratamentoDeDados(string OffsetEntrada, string LimitEntrada, out string Offset, out string Limit)
+        {
+            int LimitEntradaConvertido = Convert.ToInt32(LimitEntrada);
+            if (LimitEntradaConvertido > 50)
+            {
+                LimitEntrada = "50";
+            }
+
+            Offset = !string.IsNullOrEmpty(OffsetEntrada) ? OffsetEntrada : "0";
+            Limit = !string.IsNullOrEmpty(LimitEntrada) ? LimitEntrada : "50";
+            return LimitEntrada;
+        }
+
         public obter_notas(ILogger<obter_notas> log)
         {
             _logger = log;
@@ -86,23 +99,20 @@ namespace Company.Function
             OrderBy = OrderBy ?? data?.OrderBy;
             OffsetEntrada = OffsetEntrada ?? data?.OffsetEntrada;
             LimitEntrada = LimitEntrada ?? data?.LimitEntrada;
-            int LimitEntradaConvertido = Convert.ToInt32(LimitEntrada);
-            if (LimitEntradaConvertido > 50)
-            {
-                LimitEntrada = "50";
-            }
-
-            string Offset = !string.IsNullOrEmpty(OffsetEntrada) ? OffsetEntrada : "0";
-            string Limit = !string.IsNullOrEmpty(LimitEntrada) ? LimitEntrada : "50";
+            string Offset, Limit;
+            LimitEntrada = TratamentoDeDados(OffsetEntrada, LimitEntrada, out Offset, out Limit);
+            
             if (OrderBy != null && OrderBy != "ReferenceMonth" && OrderBy != "ReferenceYear" && OrderBy != "Document" && OrderBy != "Amount" && OrderBy != "CreatedAt" && OrderBy != "DeactivatedAt")
             {
                 return new BadRequestObjectResult("OrderBy não é válido");
             }
 
             string command = FormatarQuerrySelect(InvoiceId, ReferenceMonth, ReferenceYear, Document, OrderBy, Offset, Limit);
+            _logger.LogInformation(command);
             using (var conn = new NpgsqlConnection(connString))
             {
-                try{
+                try
+                {
                     conn.Open();
                 }
                 catch (Exception)
@@ -110,7 +120,8 @@ namespace Company.Function
                     //return server erro
                     return new StatusCodeResult(500);
                 }
-                try{
+                try
+                {
                     using (var cmd = new NpgsqlCommand(command, conn))
                     {
                         var reader = cmd.ExecuteReader();
@@ -138,8 +149,7 @@ namespace Company.Function
 
             return new OkObjectResult(invoices);
         }
-    
-        
+
     }
 
     public class adicionar_notas
@@ -154,6 +164,13 @@ namespace Company.Function
             string command = String.Format("INSERT INTO \"invoice\"(\"ReferenceMonth\", \"ReferenceYear\", \"Document\", \"Description\", \"Amount\", \"CreatedAt\", \"DeactivatedAt\", \"IsActive\") VALUES ('{0}','{1}','{2}','{3}','{4}','{5}','{6}','{7}')", ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt, IsActive);
             
             return command;
+        }
+        
+        private static void TratamentoDeDados(ref string CreatedAt, ref string DeactivatedAt)
+        {
+            CreatedAt = !string.IsNullOrEmpty(CreatedAt) ? CreatedAt : DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+            DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : "False";
+            DeactivatedAt = DateTime.TryParseExact(DeactivatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) ? DeactivatedAt : "False";
         }
 
         public adicionar_notas(ILogger<adicionar_notas> log)
@@ -179,7 +196,7 @@ namespace Company.Function
 
         public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
-            string connString = System.Environment.GetEnvironmentVariable(variable : "PATH_TO_PROJECT_STONE_DATABASE");
+            string connString = System.Environment.GetEnvironmentVariable(variable: "PATH_TO_PROJECT_STONE_DATABASE");
             _logger.LogInformation("C# HTTP trigger function precessou uma requisição de adicionar notas fiscais");
 
             string ReferenceMonth = req.Query["ReferenceMonth"];
@@ -205,20 +222,20 @@ namespace Company.Function
             {
                 return new BadRequestObjectResult("Por favor, preencha todos os campos.");
             }
-            CreatedAt = !string.IsNullOrEmpty(CreatedAt) ? CreatedAt : DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
-            DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : "False";
-            DeactivatedAt = DateTime.TryParseExact(DeactivatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) ? DeactivatedAt : "False";
-            if(DateTime.TryParseExact(CreatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date2) == false)
+            TratamentoDeDados(ref CreatedAt, ref DeactivatedAt);
+            if (DateTime.TryParseExact(CreatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date2) == false)
             {
                 return new BadRequestObjectResult("Data de criação inválida.");
             }
 
             string command = FormatarQuerryInsercao(ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt, IsActive);
+            _logger.LogInformation(command);
 
             using (var conn = new NpgsqlConnection(connString))
             {
 
-                try{
+                try
+                {
                     conn.Open();
                 }
                 catch (Exception)
@@ -229,13 +246,12 @@ namespace Company.Function
                 {
                     cmd.ExecuteNonQuery();
                 }
-                
+
             }
 
             return new OkObjectResult("Nota adicionada com sucesso.");
         }
-    
-        
+
     }
 
     public class alterar_nota
@@ -302,6 +318,7 @@ namespace Company.Function
 
             DeactivatedAt = !string.IsNullOrEmpty(DeactivatedAt) ? DeactivatedAt : "False";
             DeactivatedAt = DateTime.TryParseExact(DeactivatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) ? DeactivatedAt : "False";
+            
             if(DateTime.TryParseExact(CreatedAt, "yyyy/MM/dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date2) == false)
             {
                 return new BadRequestObjectResult("Data de criação inválida.");
@@ -313,7 +330,7 @@ namespace Company.Function
             }
 
             string command = FormatarQuerryAlteracao(InvoiceId, ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt, IsActive);
-
+            _logger.LogInformation(command);
             using (var conn = new NpgsqlConnection(connString))
             {
 
@@ -433,6 +450,7 @@ namespace Company.Function
             }
 
             string command = FormatarQuerryAlteracao(InvoiceId, ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt, IsActive);
+            _logger.LogInformation(command);
 
             using (var conn = new NpgsqlConnection(connString))
             {
@@ -546,6 +564,7 @@ namespace Company.Function
             DeactivatedAt = DeactivatedAt ?? data?.DeactivatedAt;
 
             string command = FormatarQuerrydeletar(InvoiceId, ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt);
+            _logger.LogInformation(command);
 
             using (var conn = new NpgsqlConnection(connString))
             {
