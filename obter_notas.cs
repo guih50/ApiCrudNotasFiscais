@@ -147,6 +147,10 @@ namespace Company.Function
         private readonly ILogger<adicionar_notas> _logger;
         private static string FormatarQuerryInsercao(string ReferenceMonth, string ReferenceYear, string Document, string Description, string Amount, string CreatedAt, string DeactivatedAt, string IsActive)
         {
+            if(DeactivatedAt != null && DeactivatedAt != "False")
+            {
+                IsActive = "False";
+            }
             string command = String.Format("INSERT INTO \"invoice\"(\"ReferenceMonth\", \"ReferenceYear\", \"Document\", \"Description\", \"Amount\", \"CreatedAt\", \"DeactivatedAt\", \"IsActive\") VALUES ('{0}','{1}','{2}','{3}','{4}','{5}','{6}','{7}')", ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt, IsActive);
             
             return command;
@@ -239,6 +243,10 @@ namespace Company.Function
         private readonly ILogger<alterar_nota> _logger;
         private static string FormatarQuerryAlteracao(int InvoiceId, string ReferenceMonth, string ReferenceYear, string Document, string Description, string Amount, string CreatedAt, string DeactivatedAt, string IsActive)
         {
+            if(DeactivatedAt != null && DeactivatedAt != "False")
+            {
+                IsActive = "False";
+            }
             DeactivatedAt = DeactivatedAt == null ? "" : DeactivatedAt;
             string command = String.Format("UPDATE \"invoice\" SET \"ReferenceMonth\" = '{1}', \"ReferenceYear\" = '{2}', \"Document\" = '{3}', \"Description\" = '{4}', \"Amount\" = '{5}', \"CreatedAt\" = '{6}', \"DeactivatedAt\" = '{7}', \"IsActive\" = '{8}' WHERE \"InvoiceId\" = '{0}'", InvoiceId, ReferenceMonth, ReferenceYear, Document, Description, Amount, CreatedAt, DeactivatedAt, IsActive);
             
@@ -298,7 +306,7 @@ namespace Company.Function
             {
                 return new BadRequestObjectResult("Data de criação inválida.");
             }
-            
+
             if (string.IsNullOrEmpty(ReferenceMonth) || string.IsNullOrEmpty(ReferenceYear) || string.IsNullOrEmpty(Document) || string.IsNullOrEmpty(Description) || string.IsNullOrEmpty(Amount) || string.IsNullOrEmpty(CreatedAt))
             {
                 return new BadRequestObjectResult("Por favor, preencha todos os campos.");
@@ -358,7 +366,7 @@ namespace Company.Function
                 : command + String.Format("\"CreatedAt\" = '{0}', ", CreatedAt);
             command = string.IsNullOrEmpty(DeactivatedAt)
                 ? command
-                : command + String.Format("\"DeactivatedAt\" = '{0}', ", DeactivatedAt);
+                : command + String.Format("\"DeactivatedAt\" = '{0}', \"IsActive\" = 'False',  ", DeactivatedAt);
             //retirar as ultimas 4 letras de command
             command = command.Remove(command.Length - 2);
             command = command + String.Format(" WHERE \"InvoiceId\" = {0};", InvoiceId);
